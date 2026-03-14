@@ -1,0 +1,37 @@
+export const theme = {
+  colors: {
+    navy:          '#0B1340',
+    navyLight:     '#111A52',
+    navyMid:       '#1A2463',
+    gold:          '#C9A84C',
+    goldLight:     '#E8C97A',
+    goldDim:       'rgba(201,168,76,0.15)',
+    goldBorder:    'rgba(201,168,76,0.25)',
+    textPrimary:   '#FFFFFF',
+    textSecondary: 'rgba(255,255,255,0.65)',
+    textMuted:     'rgba(255,255,255,0.35)',
+    textGold:      '#C9A84C',
+    cardBg:        'rgba(255,255,255,0.04)',
+    cardBorder:    'rgba(255,255,255,0.08)',
+    disclaimer:    'rgba(255,255,255,0.25)',
+  },
+  fonts: {
+    heading: 'PlayfairDisplay_700Bold',
+    body:    'DMSans_400Regular',
+    medium:  'DMSans_500Medium',
+  },
+  radius: {
+    sm:   8,
+    md:   12,
+    lg:   16,
+    xl:   24,
+    full: 999,
+  },
+  spacing: {
+    xs:  4,
+    sm:  8,
+    md:  16,
+    lg:  24,
+    xl:  32,
+  },
+};
