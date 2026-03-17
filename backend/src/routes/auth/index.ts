@@ -100,7 +100,7 @@ export async function authRoutes(fastify: FastifyInstance): Promise<void> {
 
     // If new user — don't issue tokens yet (they must select a role first)
     if (isNewUser) {
-      const setupToken = fastify.jwt.sign({ sub: userId, setup: true }, { expiresIn: '15m' });
+      const setupToken = fastify.jwt.sign({ sub: userId, setup: true } as any, { expiresIn: '15m' });
       return reply.code(200).send({
         success: true,
         data: { isNewUser: true, setupToken, requiresRoleSelection: true },
@@ -124,7 +124,7 @@ export async function authRoutes(fastify: FastifyInstance): Promise<void> {
     const { isNewUser, userId, role } = await verifyGoogleToken(idToken);
 
     if (isNewUser) {
-      const setupToken = fastify.jwt.sign({ sub: userId, setup: true }, { expiresIn: '15m' });
+      const setupToken = fastify.jwt.sign({ sub: userId, setup: true } as any, { expiresIn: '15m' });
       return reply.code(200).send({
         success: true,
         data: { isNewUser: true, setupToken, requiresRoleSelection: true },

@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { prisma } from '../db/prisma.js';
 import { logger } from '../utils/logger.js';
-import { ValidationError, ForbiddenError, NotFoundError } from '../utils/errors.js';
+import { ValidationError, ForbiddenError } from '../utils/errors.js';
 
 // ─── Blocked Email Domains ────────────────────────────────────────────────────
 // Law firms must register with an official organisational email, not a free/

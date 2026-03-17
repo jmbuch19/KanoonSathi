@@ -2,7 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 import { UserRole } from '@prisma/client';
 import { prisma } from '../db/prisma.js';
-import { getChatContext, setChatContext, appendToChatContext, type ContextMessage } from '../db/redis.js';
+import { getChatContext, appendToChatContext, type ContextMessage } from '../db/redis.js';
 import { config } from '../config/index.js';
 import { logger } from '../utils/logger.js';
 import { AIError } from '../utils/errors.js';

@@ -3,18 +3,16 @@ import crypto from 'crypto';
 import { OAuth2Client } from 'google-auth-library';
 import { UserRole } from '@prisma/client';
 import { prisma } from '../db/prisma.js';
-import { redis, otpSendLimiter, otpVerifyLimiter, blacklistToken } from '../db/redis.js';
+import { otpSendLimiter, otpVerifyLimiter, blacklistToken } from '../db/redis.js';
 import { config } from '../config/index.js';
 import { logger } from '../utils/logger.js';
 import {
   AuthError,
   ConflictError,
   RateLimitError,
-  ValidationError,
   NotFoundError,
 } from '../utils/errors.js';
 import { emailService } from './email.service.js';
-import type { JwtPayload } from '../types/index.js';
 
 const googleClient = new OAuth2Client(config.GOOGLE_CLIENT_ID);
 
@@ -50,7 +48,7 @@ function generateRefreshToken(): string {
 
 // ─── OTP Auth ─────────────────────────────────────────────────────────────────
 
-export async function sendOtp(email: string, ip: string): Promise<void> {
+export async function sendOtp(email: string, _ip: string): Promise<void> {
   // Rate limit: max 3 OTPs per email per hour
   const { success, remaining } = await otpSendLimiter.limit(email);
   if (!success) {
@@ -80,7 +78,7 @@ export async function sendOtp(email: string, ip: string): Promise<void> {
 export async function verifyOtp(
   email: string,
   otp: string,
-  ip: string,
+  _ip: string,
 ): Promise<{ isNewUser: boolean; userId: string; role: UserRole | null }> {
   // Rate limit: max 5 verify attempts per 15 min
   const { success } = await otpVerifyLimiter.limit(email);
@@ -175,7 +173,7 @@ export async function verifyGoogleToken(
     throw new AuthError('Could not retrieve email from Google account.');
   }
 
-  const { sub, email, name, email_verified } = payload;
+  const { sub, email, name: _name, email_verified } = payload;
 
   if (!email_verified) {
     throw new AuthError('Google account email is not verified.');
@@ -233,7 +231,7 @@ export interface DeviceInfo {
 
 export async function createSession(
   userId: string,
-  role: UserRole,
+  _role: UserRole,
   device: DeviceInfo,
 ): Promise<{ accessToken: string; refreshToken: string; sessionId: string }> {
   const refreshToken = generateRefreshToken();
@@ -254,15 +252,6 @@ export async function createSession(
       expiresAt,
     },
   });
-
-  // Access token is a signed JWT — we sign it using the Fastify JWT plugin
-  // The actual signing happens in the route handler using fastify.jwt.sign()
-  // Here we just return the payload; the route will sign it.
-  const accessTokenPayload: JwtPayload = {
-    sub: userId,
-    role,
-    sessionId: session.id,
-  };
 
   // We store what's needed; fastify.jwt.sign() is called in the route layer
   return {

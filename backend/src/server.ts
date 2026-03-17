@@ -4,7 +4,7 @@ import helmet from '@fastify/helmet';
 import jwt from '@fastify/jwt';
 import { config } from './config/index.js';
 import { logger } from './utils/logger.js';
-import { createTrace, traceStorage } from './utils/trace.js';
+import { createTrace } from './utils/trace.js';
 import { connectDB, disconnectDB } from './db/prisma.js';
 import { verifyRedisConnection, apiRateLimiter } from './db/redis.js';
 import { authRoutes } from './routes/auth/index.js';
