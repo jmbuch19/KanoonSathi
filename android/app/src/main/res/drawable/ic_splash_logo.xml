@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Simple scales of justice icon for splash screen -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#E8B86D"
+        android:pathData="M54,20 L54,88 M34,32 L74,32 M28,52 A10,10 0 0,0 48,52 M60,52 A10,10 0 0,0 80,52"
+        android:strokeColor="#E8B86D"
+        android:strokeWidth="4"
+        android:strokeLineCap="round" />
+</vector>

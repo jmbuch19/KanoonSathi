@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Android Auto-Backup rules (API ≤ 30).
+    Excludes the EncryptedSharedPreferences file that stores JWT access/refresh tokens
+    and the setup token. Hardware-key-bound blobs still can't be decrypted on another
+    device, but we exclude them to avoid sending the encrypted blob to Google Drive at all.
+    Reference: https://developer.android.com/guide/topics/data/autobackup
+-->
+<full-backup-content>
+    <exclude domain="sharedpref" path="ks_auth_secure.xml" />
+</full-backup-content>

@@ -1,0 +1,489 @@
+// KanoonSaathi Database Schema
+// Generator + Datasource
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum UserRole {
+  STUDENT
+  FACULTY
+  CURIOUS
+}
+
+enum UserStatus {
+  active
+  suspended
+  deleted
+}
+
+enum AdminRole {
+  super_admin
+  moderator
+  viewer
+}
+
+enum SubscriptionPlan {
+  free
+  basic
+  pro
+}
+
+enum SubscriptionStatus {
+  active
+  cancelled
+  expired
+}
+
+enum MessageRole {
+  user
+  assistant
+  system
+}
+
+enum PromptTemplateType {
+  system
+  suggested
+  safety
+}
+
+enum SavedItemType {
+  message
+  session
+  prompt
+}
+
+enum ModerationFlagType {
+  legal_advice
+  harmful
+  abuse
+  hallucination
+  inappropriate
+  pii
+}
+
+enum ModerationFlagSource {
+  auto
+  user_report
+  admin
+}
+
+enum ModerationReviewStatus {
+  pending
+  dismissed
+  actioned
+}
+
+enum OtpPurpose {
+  login
+  register
+  password_reset
+}
+
+// ─────────────────────────────────────────────
+// USER & AUTH
+// ─────────────────────────────────────────────
+
+model User {
+  id             String     @id @default(uuid())
+  email          String     @unique
+  emailVerified  Boolean    @default(false) @map("email_verified")
+  googleSub      String?    @unique @map("google_sub")
+  passwordHash   String?    @map("password_hash")
+  role           UserRole
+  status         UserStatus @default(active)
+  tosAcceptedAt  DateTime?  @map("tos_accepted_at")
+  lastLoginAt    DateTime?  @map("last_login_at")
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+  deletedAt      DateTime?  @map("deleted_at")
+
+  // Relations
+  studentProfile  StudentProfile?
+  facultyProfile  FacultyProfile?
+  curiousProfile  CuriousProfile?
+  sessions        UserSession[]
+  chatSessions    ChatSession[]
+  chatMessages    ChatMessage[]
+  savedItems      SavedItem[]
+  moderationFlags ModerationFlag[]
+  analyticsEvents AnalyticsEvent[]
+  usageLogs       UsageLog[]
+  subscription    Subscription?
+  internshipNotifications StudentInternshipNotification[]
+
+  @@map("users")
+}
+
+model UserSession {
+  id               String   @id @default(uuid())
+  userId           String   @map("user_id")
+  refreshTokenHash String   @map("refresh_token_hash")
+  deviceId         String?  @map("device_id")
+  deviceModel      String?  @map("device_model")
+  appVersion       String?  @map("app_version")
+  ipAddress        String?  @map("ip_address")
+  userAgent        String?  @map("user_agent")
+  createdAt        DateTime @default(now()) @map("created_at")
+  expiresAt        DateTime @map("expires_at")
+  lastUsedAt       DateTime @default(now()) @map("last_used_at")
+  revoked          Boolean  @default(false)
+  revokedAt        DateTime? @map("revoked_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([refreshTokenHash])
+  @@map("user_sessions")
+}
+
+model EmailOtp {
+  id        String     @id @default(uuid())
+  email     String
+  otpHash   String     @map("otp_hash")
+  purpose   OtpPurpose @default(login)
+  attempts  Int        @default(0)
+  createdAt DateTime   @default(now()) @map("created_at")
+  expiresAt DateTime   @map("expires_at")
+  used      Boolean    @default(false)
+
+  @@index([email])
+  @@map("email_otps")
+}
+
+// ─────────────────────────────────────────────
+// PROFILES (role-specific)
+// ─────────────────────────────────────────────
+
+model StudentProfile {
+  userId              String   @id @map("user_id")
+  fullName            String?  @map("full_name")
+  collegeName         String?  @map("college_name")
+  yearOfStudy         Int?     @map("year_of_study")
+  semester            Int?
+  subjectsOfInterest  String[] @map("subjects_of_interest")
+  examTarget          String?  @map("exam_target")
+  city                String?
+  state               String?
+  onboardingComplete  Boolean  @default(false) @map("onboarding_complete")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("student_profiles")
+}
+
+model FacultyProfile {
+  userId             String   @id @map("user_id")
+  fullName           String?  @map("full_name")
+  institutionName    String?  @map("institution_name")
+  designation        String?
+  subjectsTaught     String[] @map("subjects_taught")
+  barCouncilId       String?  @map("bar_council_id")
+  onboardingComplete Boolean  @default(false) @map("onboarding_complete")
+  verified           Boolean  @default(false)
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("faculty_profiles")
+}
+
+model CuriousProfile {
+  userId              String   @id @map("user_id")
+  displayName         String?  @map("display_name")
+  areasOfInterest     String[] @map("areas_of_interest")
+  disclaimerAccepted  Boolean  @default(false) @map("disclaimer_accepted")
+  disclaimerAcceptedAt DateTime? @map("disclaimer_accepted_at")
+  onboardingComplete  Boolean  @default(false) @map("onboarding_complete")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("curious_profiles")
+}
+
+// ─────────────────────────────────────────────
+// CHAT
+// ─────────────────────────────────────────────
+
+model ChatSession {
+  id             String   @id @default(uuid())
+  userId         String   @map("user_id")
+  roleAtCreation UserRole @map("role_at_creation")
+  chatMode       String   @map("chat_mode")
+  title          String?
+  isBookmarked   Boolean  @default(false) @map("is_bookmarked")
+  isArchived     Boolean  @default(false) @map("is_archived")
+  messageCount   Int      @default(0) @map("message_count")
+  totalTokens    Int      @default(0) @map("total_tokens")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages ChatMessage[]
+
+  @@index([userId])
+  @@map("chat_sessions")
+}
+
+model ChatMessage {
+  id                String      @id @default(uuid())
+  sessionId         String      @map("session_id")
+  userId            String      @map("user_id")
+  role              MessageRole
+  content           String
+  tokensUsed        Int?        @map("tokens_used")
+  moderationScore   Float?      @map("moderation_score")
+  moderationFlagged Boolean     @default(false) @map("moderation_flagged")
+  wasRefused        Boolean     @default(false) @map("was_refused")
+  createdAt         DateTime    @default(now()) @map("created_at")
+
+  session         ChatSession      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  moderationFlags ModerationFlag[]
+
+  @@index([sessionId])
+  @@index([userId])
+  @@map("chat_messages")
+}
+
+// ─────────────────────────────────────────────
+// PROMPT TEMPLATES (admin-managed)
+// ─────────────────────────────────────────────
+
+model PromptTemplate {
+  id           String             @id @default(uuid())
+  role         String             // STUDENT, FACULTY, CURIOUS, or ALL
+  chatMode     String             @map("chat_mode")
+  templateType PromptTemplateType @map("template_type")
+  name         String
+  content      String
+  version      Int                @default(1)
+  isActive     Boolean            @default(true) @map("is_active")
+  createdById  String?            @map("created_by_id")
+  createdAt    DateTime           @default(now()) @map("created_at")
+  updatedAt    DateTime           @updatedAt @map("updated_at")
+
+  createdBy AdminUser? @relation(fields: [createdById], references: [id])
+
+  @@index([role, chatMode, templateType])
+  @@map("prompt_templates")
+}
+
+// ─────────────────────────────────────────────
+// SAVED ITEMS
+// ─────────────────────────────────────────────
+
+model SavedItem {
+  id          String        @id @default(uuid())
+  userId      String        @map("user_id")
+  itemType    SavedItemType @map("item_type")
+  referenceId String        @map("reference_id")
+  note        String?
+  createdAt   DateTime      @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, itemType, referenceId])
+  @@map("saved_items")
+}
+
+// ─────────────────────────────────────────────
+// MODERATION FLAGS
+// ─────────────────────────────────────────────
+
+model ModerationFlag {
+  id            String                 @id @default(uuid())
+  messageId     String?                @map("message_id")
+  userId        String                 @map("user_id")
+  flagType      ModerationFlagType     @map("flag_type")
+  flagSource    ModerationFlagSource   @map("flag_source")
+  confidence    Float?
+  reviewerId    String?                @map("reviewer_id")
+  reviewStatus  ModerationReviewStatus @default(pending) @map("review_status")
+  actionTaken   String?                @map("action_taken")
+  createdAt     DateTime               @default(now()) @map("created_at")
+  reviewedAt    DateTime?              @map("reviewed_at")
+
+  message  ChatMessage? @relation(fields: [messageId], references: [id])
+  user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviewer AdminUser?   @relation(fields: [reviewerId], references: [id])
+
+  @@index([reviewStatus, createdAt(sort: Desc)])
+  @@map("moderation_flags")
+}
+
+// ─────────────────────────────────────────────
+// ANALYTICS
+// ─────────────────────────────────────────────
+
+model AnalyticsEvent {
+  id         String   @id @default(uuid())
+  userId     String?  @map("user_id")
+  sessionId  String?  @map("session_id")
+  eventType  String   @map("event_type")
+  eventData  Json?    @map("event_data")
+  role       String?
+  appVersion String?  @map("app_version")
+  deviceType String?  @map("device_type")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([eventType, createdAt(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("analytics_events")
+}
+
+model UsageLog {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  date         DateTime @db.Date
+  messageCount Int      @default(0) @map("message_count")
+  tokenCount   Int      @default(0) @map("token_count")
+  apiCalls     Int      @default(0) @map("api_calls")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@map("usage_logs")
+}
+
+// ─────────────────────────────────────────────
+// SUBSCRIPTIONS (future-ready)
+// ─────────────────────────────────────────────
+
+model Subscription {
+  id         String             @id @default(uuid())
+  userId     String             @unique @map("user_id")
+  plan       SubscriptionPlan   @default(free)
+  status     SubscriptionStatus @default(active)
+  startedAt  DateTime           @default(now()) @map("started_at")
+  expiresAt  DateTime?          @map("expires_at")
+  paymentRef String?            @map("payment_ref")
+  createdAt  DateTime           @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+// ─────────────────────────────────────────────
+// ADMIN
+// ─────────────────────────────────────────────
+
+model AdminUser {
+  id          String    @id @default(uuid())
+  email       String    @unique
+  passwordHash String   @map("password_hash")
+  name        String?
+  adminRole   AdminRole @default(viewer) @map("admin_role")
+  mfaSecret   String?   @map("mfa_secret")
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  lastLoginAt DateTime? @map("last_login_at")
+
+  promptTemplates PromptTemplate[]
+  moderationFlags ModerationFlag[]
+  auditLogs       AuditLog[]
+
+  @@map("admin_users")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String?  @map("actor_id")
+  actorType  String   @map("actor_type") // 'user' | 'admin' | 'system'
+  action     String
+  targetId   String?  @map("target_id")
+  targetType String?  @map("target_type")
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  metadata   Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  adminActor AdminUser? @relation(fields: [actorId], references: [id])
+
+  @@index([actorId, createdAt(sort: Desc)])
+  @@index([action, createdAt(sort: Desc)])
+  @@map("audit_logs")
+}
+
+// ─────────────────────────────────────────────
+// INTERNSHIP MARKETPLACE
+// Bridge between verified law firms and students
+// ─────────────────────────────────────────────
+
+model LawFirm {
+  id                String   @id @default(cuid())
+  officialName      String   @map("official_name")
+  contactPersonName String   @map("contact_person_name")
+  officialEmail     String   @unique @map("official_email")
+  websiteUrl        String?  @map("website_url")
+  city              String
+  state             String
+  specialties       String[] // e.g. ['Criminal Law', 'Cyber Law', 'Corporate Law']
+  firmToken         String   @unique @map("firm_token") // auth token for posting
+  termsAccepted     Boolean  @default(false) @map("terms_accepted")
+  status            String   @default("active") // 'active' | 'suspended'
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  postings InternshipPosting[]
+
+  @@index([city, state])
+  @@map("law_firms")
+}
+
+model InternshipPosting {
+  id                  String    @id @default(cuid())
+  firmId              String    @map("firm_id")
+  title               String
+  description         String
+  specialtyAreas      String[]  @map("specialty_areas")
+  yearOfStudyMin      Int?      @map("year_of_study_min") // 3 = 3rd year+, null = all years
+  eligibilityCriteria String?   @map("eligibility_criteria")
+  applicationDeadline DateTime? @map("application_deadline")
+  notificationRadius  String    @default("city") @map("notification_radius") // 'city' | 'state' | 'national'
+  status              String    @default("active") // 'active' | 'closed' | 'expired'
+  notificationsSent   Boolean   @default(false) @map("notifications_sent")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  firm          LawFirm                         @relation(fields: [firmId], references: [id])
+  notifications StudentInternshipNotification[]
+
+  @@index([firmId])
+  @@index([status, createdAt(sort: Desc)])
+  @@map("internship_postings")
+}
+
+model StudentInternshipNotification {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  postingId String   @map("posting_id")
+  isRead    Boolean  @default(false) @map("is_read")
+  tier      Int      // 0 = city (~100km), 1 = state (~500km), 2 = national
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user    User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  posting InternshipPosting @relation(fields: [postingId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postingId])
+  @@index([userId, isRead])
+  @@map("student_internship_notifications")
+}

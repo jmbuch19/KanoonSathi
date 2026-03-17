@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- PRODUCTION: HTTPS only — no cleartext permitted.
+         Emulator localhost cleartext is in src/debug/res/xml/ only and never ships in release. -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
+
