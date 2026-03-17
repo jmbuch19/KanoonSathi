@@ -176,7 +176,7 @@ export async function authRoutes(fastify: FastifyInstance): Promise<void> {
     const result = refreshSchema.safeParse(req.body);
     if (!result.success) throw new ValidationError('refreshToken is required');
 
-    const { userId, role, sessionId } = await refreshAccessToken(result.data.refreshToken);
+    const { userId, role } = await refreshAccessToken(result.data.refreshToken);
 
     const body = req.body as { deviceId?: string; deviceModel?: string; appVersion?: string };
 
