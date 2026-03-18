@@ -20,11 +20,11 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // Log DB errors through pino so all logs go to same place
-prisma.$on('error', (e) => {
+(prisma as any).$on('error', (e: unknown) => {
   logger.error({ err: e }, 'Prisma error');
 });
 
-prisma.$on('warn', (e) => {
+(prisma as any).$on('warn', (e: unknown) => {
   logger.warn({ warn: e }, 'Prisma warning');
 });
 

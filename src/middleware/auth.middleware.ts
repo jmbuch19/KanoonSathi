@@ -6,7 +6,7 @@ import { UserRole } from '@prisma/client';
 // The JWT plugin (registered in server.ts) already verifies the signature and expiry.
 // This middleware extracts the payload and attaches it to req.user.
 
-export async function requireAuth(req: FastifyRequest, reply: FastifyReply): Promise<void> {
+export async function requireAuth(req: FastifyRequest, _reply: FastifyReply): Promise<void> {
   try {
     await req.jwtVerify();
   } catch {

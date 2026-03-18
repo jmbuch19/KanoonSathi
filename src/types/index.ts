@@ -18,6 +18,13 @@ export interface AdminJwtPayload {
 
 // ─── Fastify Request Augmentation ─────────────────────────────────────────────
 // After auth middleware runs, req.user is available everywhere.
+declare module '@fastify/jwt' {
+  interface FastifyJWT {
+    payload: JwtPayload;
+    user: JwtPayload;
+  }
+}
+
 declare module 'fastify' {
   interface FastifyRequest {
     user: JwtPayload;
